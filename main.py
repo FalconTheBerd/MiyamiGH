@@ -24,24 +24,33 @@ for item, weight in limit_broken_pity_loot:
 
 def pull():
     global three_star_pity_counter, limit_broken_pity_counter, pull_total
-    if limit_broken_pity_counter < 100:
+    if limit_broken_pity_counter < 99:
         if three_star_pity_counter < 9:
             result = random.choice(choices)
             if result == '3 Star':
                 three_star_pity_counter = 0
+                pull_3S_pity_label.config(text=f"3 Star Pity: {three_star_pity_counter}")
             else:
                 three_star_pity_counter += 1
+                pull_3S_pity_label.config(text=f"3 Star Pity: {three_star_pity_counter}")
         else:
             result = random.choice(three_star_pity_choices)
             three_star_pity_counter = 0
+            pull_3S_pity_label.config(text=f"3 Star Pity: {three_star_pity_counter}")
+
     else:
         result = random.choice(limit_broken_pity_choices)
         limit_broken_pity_counter = 0
+        pull_LB_pity_label.config(text=f"Limit Broken Pity: {limit_broken_pity_counter}")
+
 
     if result == 'Limit Broken':
         limit_broken_pity_counter = 0
+        pull_LB_pity_label.config(text=f"Limit Broken Pity: {limit_broken_pity_counter}")
     else:
-        limit_broken_pity_counter += 1
+        limit_broken_pity_counter += 1 
+        # remember the f thing
+        pull_LB_pity_label.config(text=f"Limit Broken Pity: {limit_broken_pity_counter}")
 
     pull_total += 1
     obtained_loot.append(result)
@@ -76,11 +85,12 @@ def update_loot_count():
 root = tk.Tk()
 root.title("Pull Simulator")
 root.geometry("1920x1080")
-root.attributes('-fullscreen',True)
+#  root.attributes('-fullscreen',True)
 
 # Display pull result
 pull_result_label = tk.Label(root, text="Just press the button")
 pull_result_label.pack(pady=10)
+
 
 # Display total pulls
 pull_total_label = tk.Label(root, text="Total Pulls: 0")
@@ -101,7 +111,13 @@ pull_ten_button.pack(pady=10)
 loot_count_label = tk.Label(root, text="1 Star: 0\n2 Star: 0\n3 Star: 0\nLimit Broken: 0")
 loot_count_label.pack(pady=10)
 
+# Display LB (limit broken) pull pity
+pull_LB_pity_label = tk.Label(root, text= f"Limit Broken Pity: {limit_broken_pity_counter}")
+pull_LB_pity_label.pack(pady=10)
+
+# Display 3S (3 star) pull pity
+pull_3S_pity_label = tk.Label(root, text= f"3 Star Pity: {three_star_pity_counter}")
+pull_3S_pity_label.pack(pady=10)
+
 # Run the main event loop
 root.mainloop()
-
-print ("Hello world")
