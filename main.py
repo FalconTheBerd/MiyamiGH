@@ -96,3 +96,5 @@ loot_count_label.pack(pady=10)
 
 # Run the main event loop
 root.mainloop()
+
+print ("Hello world")
