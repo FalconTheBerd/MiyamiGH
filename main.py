@@ -1,6 +1,11 @@
 import tkinter as tk
 import random
 
+#List of 3 stars
+three_stars = ['Akane', 'Midori', 'Luna', 'Kira']
+
+
+
 loot = [('1 Star', 500), ('2 Star', 350), ('3 Star', 144), ('Limit Broken', 6)]
 three_star_pity_loot = [('3 Star', 100)]
 limit_broken_pity_loot = [('Limit Broken', 1)]
@@ -24,10 +29,15 @@ for item, weight in limit_broken_pity_loot:
 
 def pull():
     global three_star_pity_counter, limit_broken_pity_counter, pull_total
-    if limit_broken_pity_counter < 99:
-        if three_star_pity_counter < 9:
-            result = random.choice(choices)
-            if result == '3 Star':
+    if limit_broken_pity_counter < 99: # check if limit broken is guaranteed
+        if three_star_pity_counter < 9: # check if 3 star is guaranteed
+            # if neither are guaranteed. do the stuff below
+            result = random.choice(choices) # pick a random choice/rarity
+            if result == '3 Star': # so if the rarity is three star, it should pick a character
+                # so first, make it pick a character
+                selected_three_star = random.choice(three_stars)
+                result_text.config(text=f'You got {selected_three_star}')
+                # run it
                 three_star_pity_counter = 0
                 pull_3S_pity_label.config(text=f"3 Star Pity: {three_star_pity_counter}")
             else:
@@ -55,10 +65,11 @@ def pull():
     pull_total += 1
     obtained_loot.append(result)
 
-    if result.lower().startswith(vowels):
+    if result.lower().startswith(vowels) and result != '3 Star':
         result_text = f"You got an {result}"
     else:
-        result_text = f"You got a {result}"
+        if result != '3 Star':
+            result_text = f"You got a {result}"
 
     pull_result_label.config(text=result_text)
     pull_total_label.config(text=f"Total Pulls: {pull_total}")
