@@ -55,6 +55,9 @@ def pull():
     pull_total_label.config(text=f"Total Pulls: {pull_total}")
 
     update_loot_count()
+
+def endProgram():
+    exit()
     
 def pullTen():
     for i in range(10):
@@ -72,7 +75,8 @@ def update_loot_count():
 # Set up the main window
 root = tk.Tk()
 root.title("Pull Simulator")
-root.geometry("300x300")
+root.geometry("1920x1080")
+root.attributes('-fullscreen',True)
 
 # Display pull result
 pull_result_label = tk.Label(root, text="Just press the button")
@@ -88,6 +92,9 @@ pull_button.pack(pady=10)
 
 # Pull 10 button
 pull_ten_button = tk.Button(root, text="Pull x10", command=pullTen)
+pull_ten_button.pack(pady=10)
+
+pull_ten_button = tk.Button(root, text="Exit", command=endProgram)
 pull_ten_button.pack(pady=10)
 
 # Display obtained loot counts
