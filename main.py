@@ -49,22 +49,22 @@ def pull():
         result = random.choice(choices)
         if result == '1 Star':
             selected_character = random.choice(one_stars)
-            result_text = f'You got {selected_character}'
+            result_text = f'You got {selected_character}! (1 Star)'
             three_star_pity_counter += 1
             limit_broken_pity_counter += 1
         elif result == '2 Star':
             selected_character = random.choice(two_stars)
-            result_text = f'You got {selected_character}'
+            result_text = f'You got {selected_character}! (2 Star)'
             three_star_pity_counter += 1
             limit_broken_pity_counter += 1
         elif result == '3 Star':
             selected_character = random.choice(three_stars)
-            result_text = f'You got {selected_character}'
+            result_text = f'You got {selected_character}! (3 Star)'
             three_star_pity_counter = 0
             limit_broken_pity_counter += 1
         elif result == 'Limit Broken':
             selected_character = random.choice(limit_broken)
-            result_text = f'You got {selected_character}'
+            result_text = f'You got {selected_character}! (Limit Broken)'
             limit_broken_pity_counter = 0  # Reset Limit Broken pity counter
 
     # Update counters and display
