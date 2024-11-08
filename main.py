@@ -28,22 +28,22 @@ limit_broken_pity_counter = 0
 displayed_characters = set()
 character_images = {}  # Dictionary to store loaded images
 
-# Populate choices based on weights
-loot = [('1 Star', 500), ('2 Star', 350), ('3 Star', 144), ('Limit Broken', 6)]
-for item, weight in loot:
-    choices.extend([item] * weight)
+# Initialize Tkinter root window first
+root = tk.Tk()
+root.title("Pull Simulator")
+root.geometry("1000x600")
 
-# Load images for all characters
+# Function to load images for all characters
 def load_images():
     for character in one_stars + two_stars + three_stars + limit_broken:
         try:
             image_path = os.path.join(image_folder, f"{character}.png")
-            img = Image.open(image_path).resize((50, 50), Image.ANTIALIAS)
+            img = Image.open(image_path).resize((50, 50), Image.LANCZOS)
             character_images[character] = ImageTk.PhotoImage(img)
         except Exception as e:
             print(f"Error loading image for {character}: {e}")
 
-# Load images on startup
+# Load images after initializing root
 load_images()
 
 # Save data to JSON file
@@ -158,14 +158,14 @@ def update_character_grid():
             
             char_frame = tk.Frame(sidebar, padx=2, pady=2, relief="solid", bd=1, width=80, height=120)
             char_frame.grid(row=row, column=col, padx=5, pady=5)
-            char_frame.grid_propagate(False)  # Disable auto-resizing to keep consistent frame size
+            char_frame.grid_propagate(False)
 
             # Display character's image if available
-            img_label = tk.Label(char_frame, text="Image", bg="grey", width=15, height=5)
+            img_label = tk.Label(char_frame, text="Image", bg="grey", width=5, height=10)
             if character in character_images:
                 img_label.config(image=character_images[character], text="")
                 img_label.image = character_images[character]
-            img_label.pack(pady=(5, 0))  # Add padding for better spacing
+            img_label.pack(pady=(5, 0))
 
             # Character name
             name_label = tk.Label(char_frame, text=character, font=("Arial", 10))
@@ -176,20 +176,7 @@ def update_character_grid():
             rarity_label = tk.Label(char_frame, text=rarity, font=("Arial", 10))
             rarity_label.pack(pady=(0, 5))
 
-# Toggle sidebar visibility
-def toggle_sidebar():
-    if sidebar.winfo_viewable():
-        sidebar.grid_remove()
-        toggle_button.config(text="Show Sidebar")
-    else:
-        sidebar.grid()
-        toggle_button.config(text="Hide Sidebar")
-
-# Set up the main window
-root = tk.Tk()
-root.title("Pull Simulator")
-root.geometry("1000x600")
-
+# Sidebar and main area setup after initializing images
 sidebar = tk.Frame(root, width=300, bg="lightgrey")
 sidebar.grid(row=0, column=0, sticky="ns")
 
@@ -199,7 +186,7 @@ main_area.grid(row=0, column=1, sticky="nsew")
 root.grid_columnconfigure(1, weight=1)
 root.grid_rowconfigure(0, weight=1)
 
-toggle_button = tk.Button(root, text="Hide Sidebar", command=toggle_sidebar)
+toggle_button = tk.Button(root, text="Hide Sidebar", command=lambda: sidebar.grid_remove() if sidebar.winfo_viewable() else sidebar.grid())
 toggle_button.grid(row=1, column=0, pady=5, sticky="ew")
 
 pull_result_label = tk.Label(main_area, text="Just press the button")
@@ -223,5 +210,6 @@ pull_LB_pity_label.pack(pady=10)
 pull_3S_pity_label = tk.Label(main_area, text=f"3 Star Pity: {three_star_pity_counter}")
 pull_3S_pity_label.pack(pady=10)
 
+# Load data on startup
 load_data()
 root.mainloop()
