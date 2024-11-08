@@ -1,4 +1,5 @@
 import tkinter as tk
+from PIL import Image, ImageTk  # Import Pillow for image handling
 import random
 import json
 import os
@@ -9,10 +10,8 @@ two_stars = ['Zara', 'Kai', 'Tara', 'Finn']
 three_stars = ['Akane', 'Midori', 'Luna', 'Kira']
 limit_broken = ['Yoru', 'Shiro']
 
-# Loot distribution with weights
-loot = [('1 Star', 500), ('2 Star', 350), ('3 Star', 144), ('Limit Broken', 6)]
-three_star_pity_loot = [('3 Star', 100)]
-limit_broken_pity_loot = [('Limit Broken', 1)]
+# Folder path for character images
+image_folder = "images/"
 
 # JSON save file
 save_file = "miyami_misser_save.json"
@@ -27,17 +26,32 @@ limit_broken_pity_counter = 0
 
 # Track displayed characters in the sidebar to avoid duplicates
 displayed_characters = set()
+character_images = {}  # Dictionary to store loaded images
 
 # Populate choices based on weights
+loot = [('1 Star', 500), ('2 Star', 350), ('3 Star', 144), ('Limit Broken', 6)]
 for item, weight in loot:
     choices.extend([item] * weight)
+
+# Load images for all characters
+def load_images():
+    for character in one_stars + two_stars + three_stars + limit_broken:
+        try:
+            image_path = os.path.join(image_folder, f"{character}.png")
+            img = Image.open(image_path).resize((50, 50), Image.ANTIALIAS)
+            character_images[character] = ImageTk.PhotoImage(img)
+        except Exception as e:
+            print(f"Error loading image for {character}: {e}")
+
+# Load images on startup
+load_images()
 
 # Save data to JSON file
 def save_data():
     data = {
         "pull_total": pull_total,
         "obtained_loot": obtained_loot,
-        "obtained_shards": obtained_shards,  # Save shard data
+        "obtained_shards": obtained_shards,
         "three_star_pity_counter": three_star_pity_counter,
         "limit_broken_pity_counter": limit_broken_pity_counter
     }
@@ -53,7 +67,7 @@ def load_data():
             pull_total = data.get("pull_total", 0)
             obtained_loot.clear()
             obtained_loot.extend(data.get("obtained_loot", []))
-            obtained_shards.update(data.get("obtained_shards", {}))  # Load shard data
+            obtained_shards.update(data.get("obtained_shards", {}))
             three_star_pity_counter = data.get("three_star_pity_counter", 0)
             limit_broken_pity_counter = data.get("limit_broken_pity_counter", 0)
         update_display()
@@ -105,11 +119,11 @@ def pull():
             selected_character, is_shard = get_unique_or_shard(three_stars)
             result_text = f'You got {selected_character}! ⭐⭐⭐' if not is_shard else selected_character
             if not is_shard:
-                three_star_pity_counter = 0  # Reset 3-star pity counter after regular 3-star pull
+                three_star_pity_counter = 0
         elif result == 'Limit Broken':
             selected_character, is_shard = get_unique_or_shard(limit_broken)
             result_text = f'You got {selected_character}! (Limit Broken) ⭐⭐⭐⭐' if not is_shard else selected_character
-            limit_broken_pity_counter = 0  # Reset LB pity counter after LB pull
+            limit_broken_pity_counter = 0
 
     # Update pity counters after every pull
     three_star_pity_counter += 1
@@ -118,55 +132,57 @@ def pull():
     # Update counters and display
     pull_total += 1
     if not is_shard and selected_character not in obtained_loot:
-        obtained_loot.append(selected_character)  # Add character to list if not already present
-    save_data()  # Save data after each pull to store updated `obtained_loot` and `obtained_shards`
+        obtained_loot.append(selected_character)
+    save_data()
     
     # Update display
     pull_result_label.config(text=result_text)
     pull_total_label.config(text=f"Total Pulls: {pull_total}")
     pull_3S_pity_label.config(text=f"3 Star Pity: {three_star_pity_counter}")
     pull_LB_pity_label.config(text=f"Limit Broken Pity: {limit_broken_pity_counter}")
-    update_character_grid()  # Update sidebar after each pull
+    update_character_grid()
 
 # Define function to pull 10 times with a single sidebar update
 def pullTen():
     for _ in range(10):
         pull()
-    update_character_grid()  # Refresh sidebar only once after all pulls
+    update_character_grid()
 
 # Update character grid display in sidebar
 def update_character_grid():
-    # Only add new characters to avoid refreshing the entire sidebar
     for character in obtained_loot:
         if character not in displayed_characters:
             displayed_characters.add(character)
             index = len(displayed_characters) - 1
             row, col = divmod(index, 3)
             
-            # Create character frame in the sidebar grid
-            char_frame = tk.Frame(sidebar, padx=5, pady=5, relief="solid", bd=1)
-            char_frame.grid(row=row, column=col, padx=5, pady=5, sticky="n")
+            char_frame = tk.Frame(sidebar, padx=2, pady=2, relief="solid", bd=1, width=80, height=120)
+            char_frame.grid(row=row, column=col, padx=5, pady=5)
+            char_frame.grid_propagate(False)  # Disable auto-resizing to keep consistent frame size
 
-            # Placeholder for image (can replace with actual image later)
-            img_label = tk.Label(char_frame, text="Image", bg="grey", width=10, height=5)
-            img_label.pack()
+            # Display character's image if available
+            img_label = tk.Label(char_frame, text="Image", bg="grey", width=15, height=5)
+            if character in character_images:
+                img_label.config(image=character_images[character], text="")
+                img_label.image = character_images[character]
+            img_label.pack(pady=(5, 0))  # Add padding for better spacing
 
             # Character name
-            name_label = tk.Label(char_frame, text=character)
-            name_label.pack()
+            name_label = tk.Label(char_frame, text=character, font=("Arial", 10))
+            name_label.pack(pady=(5, 0))
 
             # Character rarity
             rarity = "⭐" * (1 if character in one_stars else 2 if character in two_stars else 3 if character in three_stars else 4)
-            rarity_label = tk.Label(char_frame, text=rarity)
-            rarity_label.pack()
+            rarity_label = tk.Label(char_frame, text=rarity, font=("Arial", 10))
+            rarity_label.pack(pady=(0, 5))
 
 # Toggle sidebar visibility
 def toggle_sidebar():
     if sidebar.winfo_viewable():
-        sidebar.grid_remove()  # Hide sidebar
+        sidebar.grid_remove()
         toggle_button.config(text="Show Sidebar")
     else:
-        sidebar.grid()  # Show sidebar
+        sidebar.grid()
         toggle_button.config(text="Hide Sidebar")
 
 # Set up the main window
@@ -174,52 +190,38 @@ root = tk.Tk()
 root.title("Pull Simulator")
 root.geometry("1000x600")
 
-# Sidebar for displaying obtained characters in a 3xN grid
 sidebar = tk.Frame(root, width=300, bg="lightgrey")
 sidebar.grid(row=0, column=0, sticky="ns")
 
-# Main area for buttons and pull information
 main_area = tk.Frame(root)
 main_area.grid(row=0, column=1, sticky="nsew")
 
-# Configure grid weights to allow resizing
 root.grid_columnconfigure(1, weight=1)
 root.grid_rowconfigure(0, weight=1)
 
-# Toggle button for sidebar
 toggle_button = tk.Button(root, text="Hide Sidebar", command=toggle_sidebar)
 toggle_button.grid(row=1, column=0, pady=5, sticky="ew")
 
-# Pull result display in main area
 pull_result_label = tk.Label(main_area, text="Just press the button")
 pull_result_label.pack(pady=10)
 
-# Display total pulls
 pull_total_label = tk.Label(main_area, text="Total Pulls: 0")
 pull_total_label.pack(pady=10)
 
-# Pull button
 pull_button = tk.Button(main_area, text="Pull", command=pull)
 pull_button.pack(pady=10)
 
-# Pull 10 button
 pull_ten_button = tk.Button(main_area, text="Pull x10", command=pullTen)
 pull_ten_button.pack(pady=10)
 
-# Exit button
 exit_button = tk.Button(main_area, text="Exit", command=root.quit)
 exit_button.pack(pady=10)
 
-# Display Limit Broken pity counter
 pull_LB_pity_label = tk.Label(main_area, text=f"Limit Broken Pity: {limit_broken_pity_counter}")
 pull_LB_pity_label.pack(pady=10)
 
-# Display 3 Star pity counter
 pull_3S_pity_label = tk.Label(main_area, text=f"3 Star Pity: {three_star_pity_counter}")
 pull_3S_pity_label.pack(pady=10)
 
-# Load saved data on startup
 load_data()
-
-# Run the main event loop
 root.mainloop()
