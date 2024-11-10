@@ -21,14 +21,32 @@ pull_total = 0
 obtained_loot = []  # To store unique character names
 obtained_shards = {}  # To track shards for each character
 choices = []
+three_star_pity_choices = []
+limit_broken_pity_choices = []
 three_star_pity_counter = 0
 limit_broken_pity_counter = 0
 
-# Track displayed characters in the sidebar to avoid duplicates
+# Dictionary to store shard labels for easy updating
+shard_labels = {}
+
+# Weighted loot lists
+loot = [('1 Star', 500), ('2 Star', 350), ('3 Star', 144), ('Limit Broken', 6)]
+three_star_pity_loot = [('3 Star', 100)]
+limit_broken_pity_loot = [('Limit Broken', 1)]
+
+# Populate choices based on weights
+for item, weight in loot:
+    choices.extend([item] * weight)
+for item, weight in three_star_pity_loot:
+    three_star_pity_choices.extend([item] * weight)
+for item, weight in limit_broken_pity_loot:
+    limit_broken_pity_choices.extend([item] * weight)
+
+# Track displayed characters in the char_sidebar to avoid duplicates
 displayed_characters = set()
 character_images = {}  # Dictionary to store loaded images
 
-# Initialize Tkinter root window first
+# Initialize Tkinter root window
 root = tk.Tk()
 root.title("Pull Simulator")
 root.geometry("1000x600")
@@ -80,8 +98,9 @@ def update_display():
     pull_3S_pity_label.config(text=f"3 Star Pity: {three_star_pity_counter}")
     pull_LB_pity_label.config(text=f"Limit Broken Pity: {limit_broken_pity_counter}")
     update_character_grid()
+    update_shard_display()
 
-# Define the pull function
+# Define the pull function with pity mechanics
 def pull():
     global three_star_pity_counter, limit_broken_pity_counter, pull_total
 
@@ -101,12 +120,10 @@ def pull():
         selected_character, is_shard = get_unique_or_shard(limit_broken)
         result_text = f'You got {selected_character}! ⭐⭐⭐⭐' if not is_shard else selected_character
         limit_broken_pity_counter = 0
-        three_star_pity_counter += 1  # Increase 3-star pity counter after any pull
     elif three_star_pity_counter >= 9:
         selected_character, is_shard = get_unique_or_shard(three_stars)
         result_text = f'You got {selected_character}! ⭐⭐⭐' if not is_shard else selected_character
         three_star_pity_counter = 0
-        limit_broken_pity_counter += 1  # Increase LB pity counter after any pull
     else:
         result = random.choice(choices)
         if result == '1 Star':
@@ -141,14 +158,16 @@ def pull():
     pull_3S_pity_label.config(text=f"3 Star Pity: {three_star_pity_counter}")
     pull_LB_pity_label.config(text=f"Limit Broken Pity: {limit_broken_pity_counter}")
     update_character_grid()
+    update_shard_display()
 
-# Define function to pull 10 times with a single sidebar update
+# Define function to pull 10 times with a single char_sidebar update
 def pullTen():
     for _ in range(10):
         pull()
     update_character_grid()
+    update_shard_display()
 
-# Update character grid display in sidebar
+# Update character grid display in char_sidebar
 def update_character_grid():
     for character in obtained_loot:
         if character not in displayed_characters:
@@ -156,12 +175,12 @@ def update_character_grid():
             index = len(displayed_characters) - 1
             row, col = divmod(index, 3)
             
-            char_frame = tk.Frame(sidebar, padx=2, pady=2, relief="solid", bd=1, width=80, height=120)
+            char_frame = tk.Frame(char_sidebar, padx=2, pady=2, relief="solid", bd=1, width=80, height=120)
             char_frame.grid(row=row, column=col, padx=5, pady=5)
             char_frame.grid_propagate(False)
 
             # Display character's image if available
-            img_label = tk.Label(char_frame, text="Image", bg="grey", width=5, height=10)
+            img_label = tk.Label(char_frame, text="Image", bg="grey", width=15, height=5)
             if character in character_images:
                 img_label.config(image=character_images[character], text="")
                 img_label.image = character_images[character]
@@ -176,9 +195,23 @@ def update_character_grid():
             rarity_label = tk.Label(char_frame, text=rarity, font=("Arial", 10))
             rarity_label.pack(pady=(0, 5))
 
-# Sidebar and main area setup after initializing images
-sidebar = tk.Frame(root, width=300, bg="lightgrey")
-sidebar.grid(row=0, column=0, sticky="ns")
+# Function to update the shard display in shard_sidebar
+def update_shard_display():
+    for character, shard_count in obtained_shards.items():
+        if character in shard_labels:
+            shard_labels[character].config(text=f"{character}: {shard_count} Shards")
+        else:
+            # Create a new label if it doesn't already exist
+            label = tk.Label(shard_sidebar, text=f"{character}: {shard_count} Shards", font=("Arial", 10), bg="lightgrey")
+            label.pack(anchor="w", padx=10, pady=2)
+            shard_labels[character] = label
+
+# char_sidebar and main area setup after initializing images
+shard_sidebar = tk.Frame(root, width=300, bg="lightgrey")
+shard_sidebar.grid(row=0, column=12, sticky="ns")
+
+char_sidebar = tk.Frame(root, width=300, bg="lightgrey")
+char_sidebar.grid(row=0, column=0, sticky="ns")
 
 main_area = tk.Frame(root)
 main_area.grid(row=0, column=1, sticky="nsew")
@@ -186,8 +219,11 @@ main_area.grid(row=0, column=1, sticky="nsew")
 root.grid_columnconfigure(1, weight=1)
 root.grid_rowconfigure(0, weight=1)
 
-toggle_button = tk.Button(root, text="Hide Sidebar", command=lambda: sidebar.grid_remove() if sidebar.winfo_viewable() else sidebar.grid())
-toggle_button.grid(row=1, column=0, pady=5, sticky="ew")
+char_toggle_button = tk.Button(root, text="Hide Sidebar", command=lambda: char_sidebar.grid_remove() if char_sidebar.winfo_viewable() else char_sidebar.grid())
+char_toggle_button.grid(row=1, column=0, pady=5, sticky="ew")
+
+shard_toggle_button = tk.Button(root, text="Hide Sidebar", command=lambda: shard_sidebar.grid_remove() if shard_sidebar.winfo_viewable() else shard_sidebar.grid())
+shard_toggle_button.grid(row=1, column=12, pady=5, sticky="ew")
 
 pull_result_label = tk.Label(main_area, text="Just press the button")
 pull_result_label.pack(pady=10)
