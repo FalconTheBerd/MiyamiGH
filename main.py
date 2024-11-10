@@ -85,41 +85,51 @@ def update_display():
     update_character_grid()
     update_shard_display()
 
-# Function to update the result display after each pull with larger images (160x160)
-def update_pull_result(character, is_shard):
+# Function to update the result display after a multi-pull with larger images (160x160), arranged in 2x5 grid
+def update_pull_results(pull_results):
     # Clear the previous content
     for widget in pull_result_frame.winfo_children():
         widget.destroy()
 
-    # Display character or shard information in a larger, centered layout
-    char_frame = tk.Frame(pull_result_frame, bg="lightgrey", width=160, height=240)
-    char_frame.pack_propagate(False)
-    char_frame.pack(pady=10)
+    # Configure the grid to have two rows and five columns
+    for row in range(2):
+        pull_result_frame.grid_rowconfigure(row, weight=1, minsize=240)
+    for col in range(5):
+        pull_result_frame.grid_columnconfigure(col, weight=1, minsize=160)
 
-    img_label = tk.Label(char_frame, bg="grey", width=160, height=160)
-    img_label.pack_propagate(False)
+    # Display each character in a 2x5 grid layout
+    for index, (character, is_shard) in enumerate(pull_results):
+        row = index // 5
+        col = index % 5
 
-    if character in character_images:
-        # Load a separate 160x160 image for the result display
-        result_image_path = os.path.join(image_folder, f"{character}.png")
-        result_image = Image.open(result_image_path).resize((160, 160), Image.LANCZOS)
-        result_photo = ImageTk.PhotoImage(result_image)
-        img_label.config(image=result_photo)
-        img_label.image = result_photo  # Keep a reference to avoid garbage collection
-    else:
-        img_label.config(text="Image", font=("Arial", 16))  # Placeholder if no image is available
+        char_frame = tk.Frame(pull_result_frame, bg="lightgrey", width=160, height=240)
+        char_frame.grid(row=row, column=col, padx=5, pady=5)
+        char_frame.grid_propagate(False)
 
-    img_label.pack(pady=(5, 0))
+        img_label = tk.Label(char_frame, bg="grey", width=160, height=160)
+        img_label.pack_propagate(False)
 
-    name_label = tk.Label(char_frame, text=character, font=("Arial", 16))
-    name_label.pack(pady=(5, 0))
+        if character in character_images:
+            # Load a separate 160x160 image for the result display
+            result_image_path = os.path.join(image_folder, f"{character}.png")
+            result_image = Image.open(result_image_path).resize((160, 160), Image.LANCZOS)
+            result_photo = ImageTk.PhotoImage(result_image)
+            img_label.config(image=result_photo)
+            img_label.image = result_photo  # Keep a reference to avoid garbage collection
+        else:
+            img_label.config(text="Image", font=("Arial", 16))  # Placeholder if no image is available
 
-    rarity = "Shards" if is_shard else ("⭐" * (1 if character in one_stars else 2 if character in two_stars else 3 if character in three_stars else 4))
-    rarity_label = tk.Label(char_frame, text=rarity, font=("Arial", 14))
-    rarity_label.pack(pady=(0, 10))
+        img_label.pack(pady=(5, 0))
 
-# Pull function with pity mechanics
-def pull():
+        name_label = tk.Label(char_frame, text=character, font=("Arial", 16))
+        name_label.pack(pady=(5, 0))
+
+        rarity = "Shards" if is_shard else ("⭐" * (1 if character in one_stars else 2 if character in two_stars else 3 if character in three_stars else 4))
+        rarity_label = tk.Label(char_frame, text=rarity, font=("Arial", 14))
+        rarity_label.pack(pady=(0, 10))
+        
+# Pull function to generate a single result with pity mechanics
+def single_pull():
     global three_star_pity_counter, limit_broken_pity_counter, pull_total
 
     def get_unique_or_shard(char_list):
@@ -154,15 +164,80 @@ def pull():
     three_star_pity_counter += 1
     limit_broken_pity_counter += 1
     pull_total += 1
+
+    # Add unique characters to obtained loot
     if not is_shard and selected_character not in obtained_loot:
         obtained_loot.append(selected_character)
+
     save_data()
-    update_pull_result(selected_character, is_shard)
+    return selected_character, is_shard
+
+def pull_x10():
+    pull_results = [single_pull() for _ in range(10)]  # Perform 10 pulls and collect the results
+
+    # Update the display with all 10 pull results at once
+    update_pull_results(pull_results)
+
+    # Update the counter displays
     pull_total_label.config(text=f"Total Pulls: {pull_total}")
     pull_3S_pity_label.config(text=f"3 Star Pity: {three_star_pity_counter}")
     pull_LB_pity_label.config(text=f"Limit Broken Pity: {limit_broken_pity_counter}")
     update_character_grid()
     update_shard_display()
+
+# Pull function with pity mechanics
+def pull():
+    global three_star_pity_counter, limit_broken_pity_counter, pull_total
+    pull_results = []  # Store results to display after Pull x10
+
+    def get_unique_or_shard(char_list):
+        available_chars = [char for char in char_list if char not in obtained_loot]
+        if available_chars:
+            return random.choice(available_chars), False
+        else:
+            duplicate_char = random.choice(char_list)
+            obtained_shards[duplicate_char] = obtained_shards.get(duplicate_char, 0) + 1
+            return f"Shards of {duplicate_char}'s Blessing", True
+
+    if limit_broken_pity_counter >= 99:
+        selected_character, is_shard = get_unique_or_shard(limit_broken)
+        limit_broken_pity_counter = 0
+    elif three_star_pity_counter >= 9:
+        selected_character, is_shard = get_unique_or_shard(three_stars)
+        three_star_pity_counter = 0
+    else:
+        result = random.choice(choices)
+        if result == '1 Star':
+            selected_character, is_shard = get_unique_or_shard(one_stars)
+        elif result == '2 Star':
+            selected_character, is_shard = get_unique_or_shard(two_stars)
+        elif result == '3 Star':
+            selected_character, is_shard = get_unique_or_shard(three_stars)
+            if not is_shard:
+                three_star_pity_counter = 0
+        elif result == 'Limit Broken':
+            selected_character, is_shard = get_unique_or_shard(limit_broken)
+            limit_broken_pity_counter = 0
+
+    three_star_pity_counter += 1
+    limit_broken_pity_counter += 1
+    pull_total += 1
+
+    if not is_shard and selected_character not in obtained_loot:
+        obtained_loot.append(selected_character)
+
+    # Save each result for a multi-pull display
+    pull_results.append((selected_character, is_shard))
+    
+    save_data()
+    pull_total_label.config(text=f"Total Pulls: {pull_total}")
+    pull_3S_pity_label.config(text=f"3 Star Pity: {three_star_pity_counter}")
+    pull_LB_pity_label.config(text=f"Limit Broken Pity: {limit_broken_pity_counter}")
+    update_character_grid()
+    update_shard_display()
+    
+    # Display all results if this was a Pull x10
+    update_pull_results(pull_results)
 
 # Update character grid display in char_sidebar
 def update_character_grid():
@@ -223,7 +298,7 @@ pull_total_label = tk.Label(main_area, text="Total Pulls: 0")
 pull_total_label.pack(pady=10)
 pull_button = tk.Button(main_area, text="Pull", command=pull)
 pull_button.pack(pady=10)
-pull_ten_button = tk.Button(main_area, text="Pull x10", command=lambda: [pull() for _ in range(10)])
+pull_ten_button = tk.Button(main_area, text="Pull x10", command=pull_x10)
 pull_ten_button.pack(pady=10)
 exit_button = tk.Button(main_area, text="Exit", command=root.quit)
 exit_button.pack(pady=10)
@@ -233,7 +308,7 @@ pull_3S_pity_label = tk.Label(main_area, text=f"3 Star Pity: {three_star_pity_co
 pull_3S_pity_label.pack(pady=10)
 
 # Pull result display frame with larger layout
-pull_result_frame = tk.Frame(root, bg="lightgrey", width=160, height=240)
+pull_result_frame = tk.Frame(root, bg="lightgrey", width=800, height=480)  # Width to fit 5 columns, height for 2 rows
 pull_result_frame.grid(row=2, column=1, pady=10, sticky="nsew")
 pull_result_frame.grid_propagate(False)
 
