@@ -223,5 +223,7 @@ pull_LB_pity_label.pack(pady=10)
 pull_3S_pity_label = tk.Label(main_area, text=f"3 Star Pity: {three_star_pity_counter}")
 pull_3S_pity_label.pack(pady=10)
 
+
+
 load_data()
 root.mainloop()
